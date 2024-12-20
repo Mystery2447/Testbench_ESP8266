@@ -43,6 +43,7 @@ extern uint8_t g_rx_buf[1024];
 extern circle_buf g_buf;
 extern uint8_t g_buf_cmd[50];
 extern circle_buf g_cmd;
+extern volatile uint8_t flag_switchoff;
 void Waitfor_RX_COMPLT(void);
 void UART1_IDLE_INIT(void);
 /* USER CODE END Private defines */

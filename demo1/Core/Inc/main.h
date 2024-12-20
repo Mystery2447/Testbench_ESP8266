@@ -61,6 +61,14 @@ void Error_Handler(void);
 #define Relay1_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+extern uint8_t flag_1;
+extern volatile uint8_t client_id;
+extern volatile uint8_t flag_2;//usart3接收完成标志位
+extern char buffer_tmp_cmd_raw[50];//暂时只支持mcu串口
+extern uint8_t *p_tmp_cmd;
+extern uint8_t flag_3;
+
+
 extern char buffer_mcuuart[200];  //for KL15
 int findSubArray(const char *array, size_t array_len, const char *subarray, size_t subarray_len);
 void process_ESP_data(void);

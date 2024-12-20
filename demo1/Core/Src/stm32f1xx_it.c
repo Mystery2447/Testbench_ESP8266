@@ -219,7 +219,20 @@ void USART1_IRQHandler(void)
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
+  if (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_ORE)) {
+    // 清除溢出错误
+    __HAL_UART_CLEAR_OREFLAG(&huart3);
+}
 
+if (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_PE)) {
+    // 清除奇偶校验错误
+    __HAL_UART_CLEAR_PEFLAG(&huart3);
+}
+
+if (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_FE)) {
+    // 清除帧错误
+    __HAL_UART_CLEAR_FEFLAG(&huart3);
+}
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */

@@ -29,6 +29,9 @@ uint8_t buf_rx[50]={0};
 uint8_t g_rx_buf[1024];
 circle_buf g_buf;
 
+
+volatile uint8_t flag_switchoff = 0;
+
 uint8_t g_buf_cmd[50];
 circle_buf g_cmd;
 uint16_t g_rx_datalen=0;
@@ -124,7 +127,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* USART1 interrupt Init */
-    HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
   /* USER CODE BEGIN USART1_MspInit 1 */
 
@@ -154,7 +157,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     /* USART3 interrupt Init */
-    HAL_NVIC_SetPriority(USART3_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(USART3_IRQn, 5, 1);
     HAL_NVIC_EnableIRQ(USART3_IRQn);
   /* USER CODE BEGIN USART3_MspInit 1 */
 
@@ -213,41 +216,81 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 void Waitfor_RX_COMPLT(void)
 {
 
-    while (g_rx_cmplt == 0);
-    g_rx_cmplt = 0; // 重置标志�??
+    while (g_rx_cmplt == 0)
+    {
+      if(flag_switchoff)
+      {
+        flag_1=0;
+        flag_switchoff = 0;
+        ESP_sendata(strlen("[LOG]:switchoff ADCU successfully!\r\n")+1,"[LOG]:switchoff ADCU successfully!\r\n");      
+      }
+    }
+    g_rx_cmplt = 0; // 重置标志�??
 }
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     if(huart == &huart1)
     {
-      g_rx_cmplt = 1;
-      HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
-      if(read_flag_buf()==1)
+      if(flag_1)
       {
-        for(uint16_t i =0;i<Size;i++)
+        g_rx_cmplt = 1;
+        HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
+        if(read_flag_buf()==1)
         {
-          circle_buf_write(&g_cmd,buf_rx[i]);
+          for(uint16_t i =0;i<Size;i++)
+          {
+            circle_buf_write(&g_cmd,buf_rx[i]);
+          }
+        }
+        else
+        {
+          for(uint16_t a=0;a<Size;a++)
+          {
+            circle_buf_write(&g_buf,buf_rx[a]);
+          }
         }
       }
       else
       {
-        for(uint16_t a=0;a<Size;a++)
+        HAL_UARTEx_ReceiveToIdle_IT(&huart1,buffer_tmp_cmd_raw,50);
+        if(strstr(buffer_tmp_cmd_raw,"IPD,")!=NULL)
         {
-          circle_buf_write(&g_buf,buf_rx[a]);
+          p_tmp_cmd = strchr(buffer_tmp_cmd_raw,':');
+          p_tmp_cmd++;
+          flag_3=1;
         }
       }
       
     }
     else if(huart == &huart3)
     {
-      if(findSubArray(buffer_mcuuart,sizeof(buffer_mcuuart),"enter shut_down!",strlen("enter shut_down!")))
+      if(flag_1)
       {
-        ESP_sendata(strlen("[LOG]:switchoff ADCU successfully!\r\n")+1,"[LOG]:switchoff ADCU successfully!\r\n");      }
-      else 
-      {
-        HAL_UARTEx_ReceiveToIdle_IT(&huart3,buffer_mcuuart,200);
+        flag_2=0;
+        if(findSubArray(buffer_mcuuart,sizeof(buffer_mcuuart),"enter shut_down!",strlen("enter shut_down!"))==0)
+        {
+          flag_switchoff = 1;
+        }
+        else 
+        {
+          HAL_UARTEx_ReceiveToIdle_IT(&huart3,buffer_mcuuart,200);
+        }
+        HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
       }
+      else
+      {
+        HAL_UARTEx_ReceiveToIdle_IT(&huart3,buffer_tmp,2000);
+        for (uint16_t i = 0; i < Size; i++)
+        {
+          circle_buf_write(&buf_rxfrom_usart3,buffer_tmp[i]);
+
+          /* code */
+        }
+        
+        flag_2=1;
+      }
+
     }
 
 
@@ -258,33 +301,65 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if(huart == &huart1)
     {
-      g_rx_cmplt = 1;
-      HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
-      if(read_flag_buf()==1)
+      if(flag_1)
       {
-        for(uint16_t i =0;i<50;i++)
+        g_rx_cmplt = 1;
+        HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
+        if(read_flag_buf()==1)
         {
-          circle_buf_write(&g_cmd,buf_rx[i]);
+          for(uint16_t i =0;i<50;i++)
+          {
+            circle_buf_write(&g_cmd,buf_rx[i]);
+          }
+        }
+        else
+        {
+          for(uint16_t a=0;a<50;a++)
+          {
+            circle_buf_write(&g_buf,buf_rx[a]);
+          }
         }
       }
       else
       {
-        for(uint16_t a=0;a<50;a++)
+        HAL_UARTEx_ReceiveToIdle_IT(&huart1,buffer_tmp_cmd_raw,50);
+        if(strstr(buffer_tmp_cmd_raw,"IPD,")!=NULL)
         {
-          circle_buf_write(&g_buf,buf_rx[a]);
+          p_tmp_cmd = strchr(buffer_tmp_cmd_raw,':');
+          p_tmp_cmd++;
+          flag_3=1;
         }
       }
-      
+
     }
     else if(huart == &huart3)
     {
-      if(findSubArray(buffer_mcuuart,sizeof(buffer_mcuuart),"enter shut_down!",strlen("enter shut_down!")))
+      if(flag_1)
       {
-        ESP_sendata(strlen("[LOG]:switchoff ADCU successfully!\r\n")+1,"[LOG]:switchoff ADCU successfully!\r\n");      }
-      else 
-      {
-        HAL_UARTEx_ReceiveToIdle_IT(&huart3,buffer_mcuuart,200);
+        if(findSubArray(buffer_mcuuart,sizeof(buffer_mcuuart),"enter shut_down!",strlen("enter shut_down!")))
+        {
+          flag_switchoff = 1;
+        }
+        else 
+        {
+          HAL_UARTEx_ReceiveToIdle_IT(&huart3,buffer_mcuuart,200);
+        }
+        HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
       }
+      else
+      {
+        HAL_UARTEx_ReceiveToIdle_IT(&huart3,buffer_tmp,2000);
+        for (uint16_t i = 0; i < 512; i++)
+        {
+          circle_buf_write(&buf_rxfrom_usart3,buffer_tmp[i]);
+
+          /* code */
+        }
+        
+        flag_2=1;
+      }
+
+
     }
   
 }

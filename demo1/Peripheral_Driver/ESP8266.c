@@ -18,7 +18,15 @@
 #define ESP_MODE 0    //MODE=1,means client mode,MODE=0 means server mode.
 //uint16_t g_rx_datalen=0;
 uint8_t flag_buf=0;
+uint8_t debug_buffer[50]={0};
 
+
+
+/*
+flag == 0时，对应ESP8266初始化使用
+flag == 1时，对应初始化结束，进行命令检测
+flag == 2时，对应串口调试模式
+*/
 void Change_buf(uint8_t flag)
 {
     flag_buf = flag;
@@ -71,16 +79,30 @@ void ESP_sendata(uint32_t len,uint8_t *data)
     uint8_t cmd[50]={0};
     sprintf(cmd,"AT+CIPSEND=0,%d\r\n",len-1);
     HAL_UART_Transmit(&huart1,(const uint8_t *)cmd,strlen(cmd),10);
-    HAL_Delay(10);
+    HAL_Delay(10);  //中断被block住，调高systick优先级
     HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
     HAL_UART_Transmit(&huart1,(const uint8_t *)data,len,10);
     HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
 }
 
+void ESP_sendata_ID(uint32_t len,uint8_t *data)
+{
+    uint8_t cmd[50]={0};
+    // sprintf(debug_buffer,"AT+CIPSEND=%d,%d\r\n",client_id,len-1);
+    sprintf(cmd,"AT+CIPSEND=%d,%d\r\n",client_id,len-1);
+    HAL_UART_Transmit(&huart1,(const uint8_t *)cmd,strlen(cmd),10);
+    HAL_Delay(10);  //中断被block住，调高systick优先级
+    HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
+    HAL_UART_Transmit(&huart1,(const uint8_t *)data,len,10);
+    HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
+
+
+}
 
 int ESP8266_Client_init(void)
 {
     char cmd[256];
+    flag_1=1;
     HAL_UART_Transmit(&huart1,(const uint8_t *)"+++",3,2);
     HAL_Delay(100);
     HAL_UART_Transmit(&huart1,(const uint8_t *)"\r\n",2,2);
@@ -113,6 +135,16 @@ int ESP8266_Client_init(void)
     sendATcmd("AT+CIPSEND\r\n","OK",10);
     HAL_UART_Transmit(&huart1,"hello user!\r\n",strlen("hello user!\r\n"),1);
     #else
+    /*
+    AT+CWMODE=1
+    AT+CWJAP="ESP_TEST","123456789"
+    AT+CIPSTA="192.168.137.98","192.168.137.1","255.255.255.0"
+    AT+CIPMUX=1
+    AT+CIPSERVER=1,9999
+    ATE0
+    
+    */
+ 
     sendATcmd("AT+CWMODE=1\r\n","OK",10);
     sprintf(cmd,"AT+CWJAP=\"%s\",\"%s\"\r\n", NETWORK_NAME, NETWORK_PWD);
     sendATcmd(cmd,"OK",3000);
