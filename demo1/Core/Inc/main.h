@@ -63,10 +63,11 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 extern uint8_t flag_1;
 extern volatile uint8_t client_id;
-extern volatile uint8_t flag_2;//usart3接收完成标志位
-extern char buffer_tmp_cmd_raw[50];//暂时只支持mcu串口
+extern volatile uint8_t flag_2;//usart3???????
+extern char buffer_tmp_cmd_raw[100];//?????mcu??
 extern uint8_t *p_tmp_cmd;
 extern uint8_t flag_3;
+extern uint8_t length_uart;
 
 
 extern char buffer_mcuuart[200];  //for KL15

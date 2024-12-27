@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -64,12 +65,12 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 char buffer_mcuuart[200]={0};
 volatile uint8_t client_id=0;
-uint8_t flag_1=0;
+uint8_t flag_1=2;
 uint8_t *p_tmp_cmd=NULL;
-volatile uint8_t flag_2=0;//usart3接收完成标志位
-char buffer_tmp_cmd_raw[50]={0};//暂时只支持mcu串口
+volatile uint8_t flag_2=0;//usart3???????
+char buffer_tmp_cmd_raw[100]={0};//?????mcu??
 uint8_t flag_3=0;
-
+uint8_t length_uart=0;
 /* USER CODE END 0 */
 
 /**
@@ -101,6 +102,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
@@ -123,7 +125,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    
+
     /* USER CODE BEGIN 3 */
     process_ESP_data();
   }
@@ -185,7 +187,7 @@ int findSubArray(const char *array, size_t array_len, const char *subarray, size
             }
         }
         if (j == subarray_len) {
-            return 0; // 找到子数组
+            return 0; //  ?????
         }
     }
     return -1;
@@ -277,7 +279,7 @@ void KL15OFF()
 
   Relay_close_NO();
   HAL_UARTEx_ReceiveToIdle_IT(&huart3,buffer_mcuuart,200);
-  // HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50); //尝试下
+  // HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50); //尝试�?
 
 
   
@@ -288,10 +290,10 @@ void handle_cmd(uint8_t *cmd)
   #if DEBUG
   //printf("receive CMD is[%s]",cmd);
   #endif
-  if(strncmp((const char *)cmd,"poweron",strlen("poweron"))==0)//唤醒MCU
+  if(strncmp((const char *)cmd,"poweron",strlen("poweron"))==0)//??MCU
   {
     
-    printf("MCU wakeup\r\n");
+    // printf("MCU wakeup\r\n");
     //HAL_UART_Transmit(&huart1,"AT+CIPSEND=0,40\r\n",strlen("AT+CIPSEND=0,40\r\n"),2);
     //HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
     //HAL_Delay(10);
@@ -311,7 +313,7 @@ void handle_cmd(uint8_t *cmd)
 
 
   }
-  else if (strncmp((const char *)cmd,"switchon ADCU",strlen("switchon ADCU"))==0)//域控上电
+  else if (strncmp((const char *)cmd,"switchon ADCU",strlen("switchon ADCU"))==0)//????
   {
     printf("ADC switch on\r\n");
     Relay_close_NC();
@@ -328,13 +330,13 @@ void handle_cmd(uint8_t *cmd)
     //HAL_UART_Transmit(&huart1,"[LOG]:switchon ADCU\r\n",strlen("[LOG]:switchon ADCU\r\n"),2);
     HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
   }
-  else if (strncmp((const char *)cmd,"switchoff ADCU",strlen("switchoff ADCU"))==0)//域控掉电
+  else if (strncmp((const char *)cmd,"switchoff ADCU",strlen("switchoff ADCU"))==0)//????
   {
     printf("ADC switch off\r\n");
     
 
 
-    KL15OFF();  //KL15方案
+    KL15OFF();  //KL15??
 
 
 
@@ -346,33 +348,46 @@ void handle_cmd(uint8_t *cmd)
   {
   ESP_sendata_ID(strlen("\r\n"),"\r\n");
   }
-  else if(strncmp((const char *)cmd,"soc uart debug",strlen("soc uart debug"))==0)//串口debug回读功能
+  else if(strncmp((const char *)cmd,"soc uart debug",strlen("soc uart debug"))==0)//??debug????
   {
-    //circle——buffer初始化
-    circle_buf_init(&buf_rxfrom_usart3,2000,buffer_usart3);
-    HAL_UARTEx_ReceiveToIdle_IT(&huart3,buffer_tmp,2000);
-    HAL_UARTEx_ReceiveToIdle_IT(&huart1,buffer_tmp_cmd_raw,50);
+    //circle??buffer???
+    uint8_t flag_exit=0;
+    uint16_t i=0;
     flag_1=0;
+    __HAL_UART_DISABLE_IT(&huart1,UART_IT_IDLE);
+    __HAL_UART_DISABLE_IT(&huart3,UART_IT_IDLE);
+    ESP_sendata_ID(strlen("[LOG]:debug mode on!\r\n\r\n"),"[LOG]:debug mode on!\r\n\r\n");
+
+
+
+
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart3,buffer_tmp,2048);//dma+idle
+    __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
+
+
+
+    // circle_buf_init(&buf_rxfrom_usart3,512,buffer_usart3);
+
+    // HAL_UARTEx_ReceiveToIdle_IT(&huart3,buffer_tmp,512);
+    
     for(;;)
     {
-      char buffer_tmp[512]={0};
-      uint8_t flag_exit=0;
-      uint16_t i=0;
-      while(flag_2==0)//等待串口3接收完成
+      // char buffer_1[512]={0};
+      while(flag_2==0)//????3????
       {
         if(flag_3)
         {
-          flag_3=0;
           if(strncmp((const char *)p_tmp_cmd,"exit()",strlen("exit()"))==0)
           {
             flag_1=1;
             flag_exit=1;
             break;
           }
-          else
+          else if(flag_3==2)
           {
-            HAL_UART_Transmit(&huart3,(const uint8_t*)p_tmp_cmd,strlen(p_tmp_cmd),10);
+            HAL_UART_Transmit(&huart3,(const uint8_t*)p_tmp_cmd,length_uart,10);
           }
+          flag_3=0;
         }
 
 
@@ -380,27 +395,38 @@ void handle_cmd(uint8_t *cmd)
       if(flag_exit)
       {
         flag_exit=0;
+        flag_3=0;
+        ESP_sendata_ID(strlen("[LOG]:debug mode off!\r\n\r\n"),"[LOG]:debug mode off!\r\n\r\n");
         break;
       }
 
+      
+      
+      //DMA+IDLE
+      // HAL_Delay(10);
+      // printf("[log]:just a test");
+      // if(flag_dma==0)
+      // {
+      //   HAL_UART_Transmit_DMA(&huart1,buffer_sendata,length_data);
+      // }
+      HAL_UART_Transmit_DMA(&huart1,buffer_tmp,length_data);
+      // printf("[log]just a test");
+      HAL_UARTEx_ReceiveToIdle_DMA(&huart3,buffer_tmp,2048);
+      __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
+      //DMA+IDLE
+
+
+      //IDLE
+      // while(buf_rxfrom_usart3.r!=buf_rxfrom_usart3.w)
+      // {
+      //   circle_buf_read(&buf_rxfrom_usart3,&buffer_1[i++]);
+
+      // }
+      // ESP_sendata_ID(i,buffer_1);
+      // i=0;
+      //IDLE
       flag_2=0;
-      while(buf_rxfrom_usart3.r!=buf_rxfrom_usart3.w)
-      {
-        circle_buf_read(&buf_rxfrom_usart3,&buffer_tmp[i++]);
-
-      }
-      ESP_sendata_ID(i,buffer_tmp);
-
-
-
     }
-
-
-
-
-
-
-
 
   }
   else
@@ -432,12 +458,11 @@ int fputc(int ch, FILE *f) {
   */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handle;r_Debug */
+  /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)
   {
-
   }
   /* USER CODE END Error_Handler_Debug */
 }

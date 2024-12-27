@@ -89,7 +89,7 @@ void ESP_sendata_ID(uint32_t len,uint8_t *data)
 {
     uint8_t cmd[50]={0};
     // sprintf(debug_buffer,"AT+CIPSEND=%d,%d\r\n",client_id,len-1);
-    sprintf(cmd,"AT+CIPSEND=%d,%d\r\n",client_id,len-1);
+    sprintf(cmd,"AT+CIPSEND=%d,%d\r\n",client_id,len);
     HAL_UART_Transmit(&huart1,(const uint8_t *)cmd,strlen(cmd),10);
     HAL_Delay(10);  //中断被block住，调高systick优先级
     HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);

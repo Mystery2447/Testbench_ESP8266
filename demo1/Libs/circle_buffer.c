@@ -3,9 +3,9 @@
 #include "circle_buffer.h"
 
 
-circle_buf buf_rxfrom_usart3;
-char buffer_tmp[512]={0};
-char buffer_usart3[2000]={0};
+// circle_buf buf_rxfrom_usart3;
+// char buffer_tmp[512]={0};
+// char buffer_usart3[512]={0};
 
 void circle_buf_init(p_circle_buf a,uint16_t len,uint8_t *buf)
 {
