@@ -112,14 +112,18 @@ int main(void)
   //HAL_NVIC_SetPriority(USART1_IRQn, 1, 0);
   UART1_IDLE_INIT();
   circle_buf_init(&g_cmd,50,g_buf_cmd);
+  Release_uart_bus();
   HAL_Delay(500);
   if(ESP8266_Client_init()!=0)
   {
-    printf("ESP8266 init Fail!!!");
+    // printf("ESP8266 init Fail!!!");
   }
-  else  printf("ESP8266 init success!!!");
+  else  
+  {
+    // printf("ESP8266 init success!!!");
+  }
   /* USER CODE END 2 */
-
+  // HAL_GPIO_WritePin(GPIOB,GPIO_PIN_4,GPIO_PIN_SET);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -279,7 +283,7 @@ void KL15OFF()
 
   Relay_close_NO();
   HAL_UARTEx_ReceiveToIdle_IT(&huart3,buffer_mcuuart,200);
-  // HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50); //Â∞ùËØï‰∏?
+  // HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50); //?∞????‰∏?
 
 
   
@@ -298,6 +302,7 @@ void handle_cmd(uint8_t *cmd)
     //HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
     //HAL_Delay(10);
     HAL_UART_Transmit(&huart3,"poweron\r\n",sizeof("poweron\r\n"),10);
+    Release_uart_bus(&huart3);
     //HAL_UART_Transmit(&huart1,"Already poweron!pls waiting few sec...\r\n",strlen("Already poweron!pls waiting few sec...\r\n"),2);
     #if CLIENT_ID
     ESP_sendata_ID(strlen("[LOG]:MCU already poweron\r\n\r\n"),"[LOG]:MCU already poweron\r\n\r\n");
@@ -315,28 +320,33 @@ void handle_cmd(uint8_t *cmd)
   }
   else if (strncmp((const char *)cmd,"switchon ADCU",strlen("switchon ADCU"))==0)//????
   {
-    printf("ADC switch on\r\n");
+    // printf("ADC switch on\r\n");
     Relay_close_NC();
     //HAL_UART_Transmit(&huart1,"AT+CIPSEND=0,21\r\n",strlen("AT+CIPSEND=0,21\r\n"),2);
     //HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
     //HAL_Delay(10);
     //HAL_UART_Transmit(&huart1,"[LOG]:switchon ADCU\r\n",strlen("[LOG]:switchon ADCU\r\n"),2);
     #if CLIENT_ID
-    ESP_sendata_ID(strlen("[LOG]:switchon ADCU successfully!\r\n\r\n"),"[LOG]:switchon ADCU successfully!\r\n\r\n");
+    ESP_sendata_ID(strlen("[LOG]:switchon ADCU successfully!waiting for SOC wakeup...\r\n\r\n"),"[LOG]:switchon ADCU successfully!waiting for SOC wakeup...\r\n\r\n");
     #else
     ESP_sendata(strlen("[LOG]:switchon ADCU successfully!\r\n"),"[LOG]:switchon ADCU successfully!\r\n");
     #endif
-
     //HAL_UART_Transmit(&huart1,"[LOG]:switchon ADCU\r\n",strlen("[LOG]:switchon ADCU\r\n"),2);
     HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
+    Reinit_UART_bus(&huart3);
+    HAL_Delay(3000);
+    HAL_UART_Transmit(&huart3,"poweron\r\n",strlen("poweron\r\n"),2);
+    ESP_sendata_ID(strlen("[LOG]:SOC wakeup signal sending...\r\n\r\n"),"[LOG]:SOC wakeup signal sending...\r\n\r\n");
+    Release_uart_bus(&huart3);
+
   }
   else if (strncmp((const char *)cmd,"switchoff ADCU",strlen("switchoff ADCU"))==0)//????
   {
-    printf("ADC switch off\r\n");
+    // printf("ADC switch off\r\n");
     
-
-
-    KL15OFF();  //KL15??
+    Relay_close_NO();
+    ESP_sendata_ID(strlen("[LOG]:switchoff ADCU successfully!\r\n\r\n"),"[LOG]:switchoff ADCU successfully!\r\n\r\n");
+    // KL15OFF();  //KL15??
 
 
 
@@ -348,87 +358,87 @@ void handle_cmd(uint8_t *cmd)
   {
   ESP_sendata_ID(strlen("\r\n"),"\r\n");
   }
-  else if(strncmp((const char *)cmd,"soc uart debug",strlen("soc uart debug"))==0)//??debug????
-  {
-    //circle??buffer???
-    uint8_t flag_exit=0;
-    uint16_t i=0;
-    flag_1=0;
-    __HAL_UART_DISABLE_IT(&huart1,UART_IT_IDLE);
-    __HAL_UART_DISABLE_IT(&huart3,UART_IT_IDLE);
-    ESP_sendata_ID(strlen("[LOG]:debug mode on!\r\n\r\n"),"[LOG]:debug mode on!\r\n\r\n");
+  // else if(strncmp((const char *)cmd,"soc uart debug",strlen("soc uart debug"))==0)//??debug????
+  // {
+  //   //circle??buffer???
+  //   uint8_t flag_exit=0;
+  //   uint16_t i=0;
+  //   flag_1=0;
+  //   __HAL_UART_DISABLE_IT(&huart1,UART_IT_IDLE);
+  //   __HAL_UART_DISABLE_IT(&huart3,UART_IT_IDLE);
+  //   ESP_sendata_ID(strlen("[LOG]:debug mode on!\r\n\r\n"),"[LOG]:debug mode on!\r\n\r\n");
 
 
 
 
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart3,buffer_tmp,2048);//dma+idle
-    __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
+  //   HAL_UARTEx_ReceiveToIdle_DMA(&huart3,buffer_tmp,2048);//dma+idle
+  //   __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
 
 
 
-    // circle_buf_init(&buf_rxfrom_usart3,512,buffer_usart3);
+  //   // circle_buf_init(&buf_rxfrom_usart3,512,buffer_usart3);
 
-    // HAL_UARTEx_ReceiveToIdle_IT(&huart3,buffer_tmp,512);
+  //   // HAL_UARTEx_ReceiveToIdle_IT(&huart3,buffer_tmp,512);
     
-    for(;;)
-    {
-      // char buffer_1[512]={0};
-      while(flag_2==0)//????3????
-      {
-        if(flag_3)
-        {
-          if(strncmp((const char *)p_tmp_cmd,"exit()",strlen("exit()"))==0)
-          {
-            flag_1=1;
-            flag_exit=1;
-            break;
-          }
-          else if(flag_3==2)
-          {
-            HAL_UART_Transmit(&huart3,(const uint8_t*)p_tmp_cmd,length_uart,10);
-          }
-          flag_3=0;
-        }
+  //   for(;;)
+  //   {
+  //     // char buffer_1[512]={0};
+  //     while(flag_2==0)//????3????
+  //     {
+  //       if(flag_3)
+  //       {
+  //         if(strncmp((const char *)p_tmp_cmd,"exit()",strlen("exit()"))==0)
+  //         {
+  //           flag_1=1;
+  //           flag_exit=1;
+  //           break;
+  //         }
+  //         else if(flag_3==2)
+  //         {
+  //           HAL_UART_Transmit(&huart3,(const uint8_t*)p_tmp_cmd,length_uart,10);
+  //         }
+  //         flag_3=0;
+  //       }
 
 
-      }
-      if(flag_exit)
-      {
-        flag_exit=0;
-        flag_3=0;
-        ESP_sendata_ID(strlen("[LOG]:debug mode off!\r\n\r\n"),"[LOG]:debug mode off!\r\n\r\n");
-        break;
-      }
+  //     }
+  //     if(flag_exit)
+  //     {
+  //       flag_exit=0;
+  //       flag_3=0;
+  //       ESP_sendata_ID(strlen("[LOG]:debug mode off!\r\n\r\n"),"[LOG]:debug mode off!\r\n\r\n");
+  //       break;
+  //     }
 
       
       
-      //DMA+IDLE
-      // HAL_Delay(10);
-      // printf("[log]:just a test");
-      // if(flag_dma==0)
-      // {
-      //   HAL_UART_Transmit_DMA(&huart1,buffer_sendata,length_data);
-      // }
-      HAL_UART_Transmit_DMA(&huart1,buffer_tmp,length_data);
-      // printf("[log]just a test");
-      HAL_UARTEx_ReceiveToIdle_DMA(&huart3,buffer_tmp,2048);
-      __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
-      //DMA+IDLE
+  //     //DMA+IDLE
+  //     // HAL_Delay(10);
+  //     // printf("[log]:just a test");
+  //     // if(flag_dma==0)
+  //     // {
+  //     //   HAL_UART_Transmit_DMA(&huart1,buffer_sendata,length_data);
+  //     // }
+  //     HAL_UART_Transmit_DMA(&huart1,buffer_tmp,length_data);
+  //     // printf("[log]just a test");
+  //     HAL_UARTEx_ReceiveToIdle_DMA(&huart3,buffer_tmp,2048);
+  //     __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
+  //     //DMA+IDLE
 
 
-      //IDLE
-      // while(buf_rxfrom_usart3.r!=buf_rxfrom_usart3.w)
-      // {
-      //   circle_buf_read(&buf_rxfrom_usart3,&buffer_1[i++]);
+  //     //IDLE
+  //     // while(buf_rxfrom_usart3.r!=buf_rxfrom_usart3.w)
+  //     // {
+  //     //   circle_buf_read(&buf_rxfrom_usart3,&buffer_1[i++]);
 
-      // }
-      // ESP_sendata_ID(i,buffer_1);
-      // i=0;
-      //IDLE
-      flag_2=0;
-    }
+  //     // }
+  //     // ESP_sendata_ID(i,buffer_1);
+  //     // i=0;
+  //     //IDLE
+  //     flag_2=0;
+  //   }
 
-  }
+  // }
   else
   {
     #if CLIENT_ID
@@ -437,7 +447,7 @@ void handle_cmd(uint8_t *cmd)
     ESP_sendata(strlen("[WARNING]:invalid cmd!!!\r\n"),"[WARNING]:invalid cmd!!!\r\n");
     #endif     
     
-
+    
     //HAL_UART_Transmit(&huart1,"[WARNING]:invalid cmd!!!\r\n",strlen("[WARNING]:invalid cmd!!!\r\n"),2);
     HAL_UARTEx_ReceiveToIdle_IT(&huart1,buf_rx,50);
 

@@ -4,7 +4,7 @@
 
 void Relay_init(void)
 {
-    HAL_GPIO_WritePin(Relay1_GPIO_Port,Relay1_Pin,GPIO_PIN_SET);
+    HAL_GPIO_WritePin(Relay1_GPIO_Port,Relay1_Pin,GPIO_PIN_RESET);
 }
 
 void Relay_close_NC(void)

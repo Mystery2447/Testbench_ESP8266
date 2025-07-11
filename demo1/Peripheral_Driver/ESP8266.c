@@ -6,12 +6,24 @@
 #include "stdio.h"
 #include "circle_buffer.h"
 
+
+
+#define NETWORK_FLOOR  0       //11为0，8为1
+#if NETWORK_FLOOR
+#define NETWORK_NAME "ESP_route"
+#else
 #define NETWORK_NAME "ESP_TEST"
+#endif
+
+
+
+// #define NETWORK_NAME "ESP_route"
+// #define NTEWORK_NAME "ESP_TEST"
 #define NETWORK_PWD "123456789"
-#define ESP_IP "192.168.137.98"
-#define ESP_GATEWAY "192.168.137.1"
+#define ESP_IP "192.168.8.2"
+#define ESP_GATEWAY "192.168.8.1"
 #define ESP_NETMASK "255.255.255.0"
-#define CONNECT_IP "192.168.137.1"
+#define CONNECT_IP "192.168.8.1"
 #define ESP_PORT 9999
 #define ESP_NUM 1
 

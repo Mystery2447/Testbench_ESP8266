@@ -3,7 +3,7 @@
 void Relay_init(void);
 void Relay_close_NC(void);
 void Relay_close_NO(void);
-
+//use PB4
 
 
 

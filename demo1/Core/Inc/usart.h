@@ -53,6 +53,9 @@ extern char buffer_tmp[2048];
 
 void Waitfor_RX_COMPLT(void);
 void UART1_IDLE_INIT(void);
+void Release_uart_bus();
+void Reinit_UART_bus();
+
 /* USER CODE END Private defines */
 
 void MX_USART1_UART_Init(void);

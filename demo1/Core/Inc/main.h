@@ -60,6 +60,17 @@ void Error_Handler(void);
 #define Relay1_Pin GPIO_PIN_4
 #define Relay1_GPIO_Port GPIOB
 
+   /**USART1 GPIO Configuration
+    PA9     ------> USART1_TX
+    PA10     ------> USART1_RX
+    */
+
+    /**USART3 GPIO Configuration
+    PB10     ------> USART3_TX
+    PB11     ------> USART3_RX
+    */
+
+  
 /* USER CODE BEGIN Private defines */
 extern uint8_t flag_1;
 extern volatile uint8_t client_id;
